@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useState } from "react";
+import { FormEvent, useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { getSupabaseBrowserClient } from "../../lib/supabase-browser";
@@ -15,6 +15,50 @@ export default function AuthPage() {
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
+  const routeAuthenticatedUser = useCallback(async (userId: string) => {
+    const supabase = getSupabaseBrowserClient();
+    const { data: authData } = await supabase.auth.getUser();
+    if (!authData.user || authData.user.id !== userId || !authData.user.email_confirmed_at) return;
+
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("role, active_mode, can_bake")
+      .eq("id", userId)
+      .single();
+    const destination = profile?.role === "ADMIN"
+      ? "/admin/dashboard"
+      : profile?.active_mode === "BAKER" && (profile.can_bake || profile.role === "BAKER")
+        ? "/baker/dashboard"
+        : profile?.role === "TASTER"
+          ? "/taster/dashboard"
+          : "/baker/dashboard";
+    router.replace(destination);
+    router.refresh();
+  }, [router]);
+
+  useEffect(() => {
+    const supabase = getSupabaseBrowserClient();
+    const params = new URLSearchParams(window.location.search);
+    const setupTimer = window.setTimeout(() => {
+      if (params.get("mode") === "signup") setMode("sign-up");
+      if (params.get("role")?.toLowerCase() === "taster") setRole("TASTER");
+    });
+
+    void supabase.auth.getUser().then(({ data }) => {
+      if (data.user?.email_confirmed_at) void routeAuthenticatedUser(data.user.id);
+    });
+
+    const { data: subscription } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === "SIGNED_IN" && session?.user.email_confirmed_at) {
+        void routeAuthenticatedUser(session.user.id);
+      }
+    });
+    return () => {
+      window.clearTimeout(setupTimer);
+      subscription.subscription.unsubscribe();
+    };
+  }, [routeAuthenticatedUser]);
+
   const submit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setError(null);
@@ -28,7 +72,8 @@ export default function AuthPage() {
 
       if (result.error) throw result.error;
       if (mode === "sign-up" && !result.data.session) {
-        setMessage("Account created. Check your email to confirm it, then sign in.");
+        sessionStorage.setItem("cookie-war-auth-notice", "Your account was created but is not verified yet. Check your email, then use the confirmation link to open your dashboard.");
+        router.replace("/");
         return;
       }
       const signedInUser = result.data.user;
@@ -42,7 +87,7 @@ export default function AuthPage() {
           : profile?.role === "TASTER" || role === "TASTER"
           ? "/taster/dashboard"
           : "/baker/dashboard";
-      router.push(destination);
+      router.replace(destination);
       router.refresh();
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : "Authentication failed. Please try again.");

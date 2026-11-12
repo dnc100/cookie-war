@@ -59,8 +59,15 @@ export function LandingPage() {
   const [timeRemaining, setTimeRemaining] = useState(["00", "00", "00"]);
   const [nextBattleAt, setNextBattleAt] = useState<Date | null>(null);
   const [nextBattle, setNextBattle] = useState({ name: "Your next competition", genre: "baking", submissionDate: "", resultsDate: "" });
+  const [authNotice, setAuthNotice] = useState<string | null>(null);
 
   useEffect(() => {
+    const notice = sessionStorage.getItem("cookie-war-auth-notice");
+    const noticeTimer = window.setTimeout(() => {
+      if (notice) setAuthNotice(notice);
+    });
+    if (notice) sessionStorage.removeItem("cookie-war-auth-notice");
+
     const loadBattle = async () => {
       const { data, error } = await getSupabaseBrowserClient()
         .from("battles")
@@ -79,6 +86,7 @@ export function LandingPage() {
       }
     };
     void loadBattle();
+    return () => window.clearTimeout(noticeTimer);
   }, []);
 
   useEffect(() => {
@@ -104,6 +112,7 @@ export function LandingPage() {
           </Link>
         </div>
       </nav>
+      {authNotice && <p role="status" className="mx-auto mt-6 max-w-6xl rounded-2xl bg-[#edffd1] px-5 py-4 text-sm font-bold text-[#42551d]">{authNotice}</p>}
 
       <section className="mx-auto grid max-w-6xl items-center gap-10 pb-16 pt-16 lg:grid-cols-[1.05fr_.95fr] lg:pb-24 lg:pt-24">
         <div>
