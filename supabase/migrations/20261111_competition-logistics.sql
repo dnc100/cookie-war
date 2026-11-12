@@ -63,6 +63,7 @@ alter table public.battle_participants add column if not exists location_name te
 alter table public.battle_participants add column if not exists location_address text;
 alter table public.battle_participants add column if not exists location_latitude double precision;
 alter table public.battle_participants add column if not exists location_longitude double precision;
+alter table public.battle_participants add column if not exists allergy_tags jsonb not null default '[]'::jsonb;
 
 create table if not exists public.submissions (
   id uuid primary key default gen_random_uuid(),
@@ -88,6 +89,7 @@ drop policy if exists "Admins can manage competition locations" on public.compet
 drop policy if exists "Users can join battles" on public.battle_participants;
 drop policy if exists "Users can read their participation" on public.battle_participants;
 drop policy if exists "Users can update their location" on public.battle_participants;
+drop policy if exists "Users can leave their competition" on public.battle_participants;
 drop policy if exists "Bakers can submit their own entry" on public.submissions;
 drop policy if exists "Bakers and admins can read submissions" on public.submissions;
 drop policy if exists "Bakers can update their own entry" on public.submissions;
@@ -100,6 +102,7 @@ create policy "Admins can manage competition locations" on public.competition_lo
 create policy "Users can join battles" on public.battle_participants for insert with check (auth.uid() = user_id);
 create policy "Users can read their participation" on public.battle_participants for select using (auth.uid() = user_id or public.is_admin());
 create policy "Users can update their location" on public.battle_participants for update using (auth.uid() = user_id) with check (auth.uid() = user_id);
+create policy "Users can leave their competition" on public.battle_participants for delete using (auth.uid() = user_id);
 create policy "Bakers can submit their own entry" on public.submissions for insert with check (auth.uid() = baker_id);
 create policy "Bakers and admins can read submissions" on public.submissions for select using (auth.uid() = baker_id or public.is_admin());
 create policy "Bakers can update their own entry" on public.submissions for update using (auth.uid() = baker_id) with check (auth.uid() = baker_id);

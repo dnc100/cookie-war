@@ -44,6 +44,7 @@ create table public.battle_participants (
   location_address text,
   location_latitude double precision,
   location_longitude double precision,
+  allergy_tags jsonb not null default '[]'::jsonb,
   primary key (battle_id, user_id)
 );
 
@@ -85,6 +86,7 @@ create policy "Admins can manage competition locations" on public.competition_lo
 create policy "Users can join battles" on public.battle_participants for insert with check (auth.uid() = user_id);
 create policy "Users can read their participation" on public.battle_participants for select using (auth.uid() = user_id or public.is_admin());
 create policy "Users can update their location" on public.battle_participants for update using (auth.uid() = user_id) with check (auth.uid() = user_id);
+create policy "Users can leave their competition" on public.battle_participants for delete using (auth.uid() = user_id);
 create policy "Bakers can submit their own entry" on public.submissions for insert with check (auth.uid() = baker_id);
 create policy "Bakers and admins can read submissions" on public.submissions for select using (auth.uid() = baker_id or public.is_admin());
 create policy "Bakers can update their own entry" on public.submissions for update using (auth.uid() = baker_id) with check (auth.uid() = baker_id);

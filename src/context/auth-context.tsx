@@ -51,18 +51,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         .single();
 
       if (active) {
+        const role = (profile?.role as UserRole | undefined) ?? "TASTER";
+        const canBake = Boolean(profile?.can_bake || role === "BAKER");
+        const canTaste = Boolean(profile?.can_taste || role === "BAKER" || role === "TASTER");
         setUser({
           id: authData.user.id,
           displayName: profile?.display_name ?? authData.user.email?.split("@")[0] ?? "User",
           email: authData.user.email ?? "",
-          role: (profile?.role as UserRole | undefined) ?? "TASTER",
-          activeMode: profile?.role === "ADMIN"
+          role,
+          activeMode: role === "ADMIN"
             ? "ADMIN"
-            : profile?.active_mode === "BAKER" && profile.can_bake
+            : profile?.active_mode === "BAKER" && canBake
               ? "BAKER"
               : "TASTER",
-          canBake: profile?.can_bake ?? profile?.role === "BAKER",
-          canTaste: profile?.can_taste ?? true,
+          canBake,
+          canTaste,
         });
         setIsLoading(false);
       }

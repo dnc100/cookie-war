@@ -33,11 +33,13 @@ export default function AuthPage() {
       }
       const signedInUser = result.data.user;
       const { data: profile } = signedInUser
-        ? await supabase.from("profiles").select("role").eq("id", signedInUser.id).single()
+        ? await supabase.from("profiles").select("role, active_mode, can_bake").eq("id", signedInUser.id).single()
         : { data: null };
       const destination = profile?.role === "ADMIN"
         ? "/admin/dashboard"
-        : profile?.role === "TASTER" || role === "TASTER"
+        : profile?.active_mode === "BAKER" && (profile.can_bake || profile.role === "BAKER")
+          ? "/baker/dashboard"
+          : profile?.role === "TASTER" || role === "TASTER"
           ? "/taster/dashboard"
           : "/baker/dashboard";
       router.push(destination);
@@ -65,7 +67,7 @@ export default function AuthPage() {
           )}
           {error && <p role="alert" className="rounded-2xl bg-red-50 px-4 py-3 text-sm font-bold text-red-800">{error}</p>}
           {message && <p role="status" className="rounded-2xl bg-[#edffd1] px-4 py-3 text-sm font-bold text-[#42551d]">{message}</p>}
-          <button type="submit" className="w-full rounded-full bg-[#62632c] px-5 py-4 font-black text-[#d8ff88]">{mode === "sign-in" ? "Sign in" : "Create account"}</button>
+          <button type="submit" className="w-full rounded-full bg-[#d8ff88] px-5 py-4 font-black text-black">{mode === "sign-in" ? "Sign in" : "Create account"}</button>
         </form>
         <button type="button" onClick={() => setMode(mode === "sign-in" ? "sign-up" : "sign-in")} className="mt-5 text-sm font-bold text-[#62632c] underline">
           {mode === "sign-in" ? "Need an account? Sign up" : "Already have an account? Sign in"}

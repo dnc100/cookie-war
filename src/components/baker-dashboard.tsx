@@ -3,24 +3,30 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { DashboardShell } from "./dashboard-shell";
-import { BattleTimeline } from "./timeline";
 import { getSupabaseBrowserClient } from "../lib/supabase-browser";
 import { useAuth } from "../context/auth-context";
 
 export function BakerDashboard() {
   const { user } = useAuth();
   const [battles, setBattles] = useState<Array<{ id: string; name: string; genre: string; submissions_close_at: string; taste_day_at: string; results_day_at: string }>>([]);
+  const [submittedBattleIds, setSubmittedBattleIds] = useState<string[]>([]);
 
   useEffect(() => {
     let active = true;
-    void getSupabaseBrowserClient()
-      .from("battles")
-      .select("id, name, genre, submissions_close_at, taste_day_at, results_day_at")
-      .in("status", ["DRAFT", "OPEN"])
-      .order("taste_day_at", { ascending: true })
-      .then(({ data }) => {
-        if (active) setBattles(data ?? []);
-      });
+    const load = async () => {
+      const supabase = getSupabaseBrowserClient();
+      const [{ data: battlesData }, { data: authData }] = await Promise.all([
+        supabase.from("battles").select("id, name, genre, submissions_close_at, taste_day_at, results_day_at").in("status", ["DRAFT", "OPEN"]).order("taste_day_at", { ascending: true }),
+        supabase.auth.getUser(),
+      ]);
+      if (!authData.user || !active) return;
+      const { data: submissions } = await supabase.from("submissions").select("battle_id").eq("baker_id", authData.user.id);
+      if (active) {
+        setBattles(battlesData ?? []);
+        setSubmittedBattleIds((submissions ?? []).map((submission) => submission.battle_id));
+      }
+    };
+    void load();
     return () => {
       active = false;
     };
@@ -40,9 +46,8 @@ export function BakerDashboard() {
             <p className="mt-1 font-black">{new Date(battle.taste_day_at).toLocaleDateString()}</p>
           </div>
         </div>
-        <BattleTimeline submissionDeadline={new Date(battle.submissions_close_at).toLocaleDateString()} tasteDay={new Date(battle.taste_day_at).toLocaleDateString()} resultsDay={new Date(battle.results_day_at).toLocaleDateString()} />
-        <Link href={`/baker/battles/${battle.id}/submit`} className="mt-8 inline-flex items-center rounded-full bg-[#b8e4f2] px-6 py-4 font-black text-[#123b55] transition hover:-translate-y-0.5 hover:bg-white">
-          View competition <span className="ml-3">→</span>
+        <Link href={`/baker/battles/${battle.id}/submit`} className="mt-8 inline-flex items-center rounded-full bg-[#b8e4f2] px-6 py-4 font-black text-black transition hover:-translate-y-0.5 hover:bg-white">
+          {submittedBattleIds.includes(battle.id) ? "View submission" : "Enter the competition"} <span className="ml-3">→</span>
         </Link>
       </section>)}
       <div className="mt-8 grid gap-4 sm:grid-cols-3">

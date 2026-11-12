@@ -74,6 +74,8 @@ export function CookieSubmissionForm({
   const [locationAddress, setLocationAddress] = useState("");
   const [locationLatitude, setLocationLatitude] = useState<number | null>(null);
   const [locationLongitude, setLocationLongitude] = useState<number | null>(null);
+  const [isLocating, setIsLocating] = useState(false);
+  const [locationError, setLocationError] = useState<string | null>(null);
 
   useEffect(() => {
     let active = true;
@@ -288,9 +290,36 @@ export function CookieSubmissionForm({
             <div className="absolute left-1/2 top-1/2 grid h-8 w-8 -translate-x-1/2 -translate-y-1/2 place-items-center rounded-full bg-[#1d668c] text-lg text-white shadow-lg">●</div>
           </div>
           <div className="flex items-center justify-between gap-3 bg-white/70 px-4 py-3 text-xs text-[#24516b]">
-            <span>{locationLatitude && locationLongitude ? `${locationLatitude.toFixed(5)}, ${locationLongitude.toFixed(5)}` : "Optional map pin"}</span>
-            <button type="button" onClick={() => navigator.geolocation?.getCurrentPosition((position) => { setLocationLatitude(position.coords.latitude); setLocationLongitude(position.coords.longitude); })} className="rounded-full bg-[#1d668c] px-3 py-2 font-black text-white">Use my location</button>
+            <span>{locationAddress || (locationLatitude && locationLongitude ? `${locationLatitude.toFixed(5)}, ${locationLongitude.toFixed(5)}` : "Optional map pin")}</span>
+            <button type="button" disabled={isLocating} onClick={() => {
+              if (!navigator.geolocation) {
+                setLocationError("Location is not available in this browser.");
+                return;
+              }
+              setIsLocating(true);
+              setLocationError(null);
+              navigator.geolocation.getCurrentPosition(async (position) => {
+                const { latitude, longitude } = position.coords;
+                setLocationLatitude(latitude);
+                setLocationLongitude(longitude);
+                try {
+                  const response = await fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${latitude}&lon=${longitude}`);
+                  if (!response.ok) throw new Error("Address lookup failed.");
+                  const result = await response.json() as { display_name?: string };
+                  if (!result.display_name) throw new Error("No address was found for this location.");
+                  setLocationAddress(result.display_name);
+                } catch (caught) {
+                  setLocationError(caught instanceof Error ? caught.message : "Could not find an address.");
+                } finally {
+                  setIsLocating(false);
+                }
+              }, () => {
+                setLocationError("We could not access your location. Check your browser permission.");
+                setIsLocating(false);
+              });
+            }} className="rounded-full bg-[#1d668c] px-3 py-2 font-black text-white">{isLocating ? "Finding address..." : "Use my location"}</button>
           </div>
+          {locationError && <p className="mt-2 text-sm font-bold text-red-700">{locationError}</p>}
         </div>
         {errors.dropOffLocationId && <p id="location-error" className="mt-2 text-sm font-bold text-red-700">{errors.dropOffLocationId}</p>}
       </section>

@@ -26,12 +26,17 @@ export function DashboardShell({
   const { user, isLoading, signOut, switchMode } = useAuth();
   const router = useRouter();
   const activeRole = user?.activeMode ?? role;
+  const homeHref = user?.role === "ADMIN"
+    ? "/admin/dashboard"
+    : user?.activeMode === "BAKER"
+      ? "/baker/dashboard"
+      : "/taster/dashboard";
 
   return (
     <main className={`min-h-screen text-[#35271f] ${role === "BAKER" ? "bg-[#edf7fb]" : role === "TASTER" ? "bg-[#f7efe3]" : "bg-[#f7efe3]"}`}>
       <header className="border-b border-[#e7d8c5] bg-[#fffaf3]/90">
         <nav className="mx-auto flex max-w-6xl items-center justify-between px-5 py-5 sm:px-8">
-          <Link href="/" className="text-2xl font-black tracking-[-0.08em] text-[#85451f]">
+          <Link href={user ? homeHref : "/"} className="text-2xl font-black tracking-[-0.08em] text-[#85451f]">
             cookie<span className="text-[#e59a36]">!</span>
           </Link>
           <div className="flex items-center gap-3">
