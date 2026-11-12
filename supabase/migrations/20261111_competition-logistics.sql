@@ -84,6 +84,7 @@ alter table public.battle_participants enable row level security;
 alter table public.submissions enable row level security;
 
 drop policy if exists "Admins can delete battles" on public.battles;
+drop policy if exists "Anyone can read upcoming battles" on public.battles;
 drop policy if exists "Authenticated users can read competition locations" on public.competition_locations;
 drop policy if exists "Admins can manage competition locations" on public.competition_locations;
 drop policy if exists "Users can join battles" on public.battle_participants;
@@ -97,6 +98,7 @@ drop policy if exists "Bakers can delete their own entry" on public.submissions;
 drop policy if exists "Users can update their own mode" on public.profiles;
 
 create policy "Admins can delete battles" on public.battles for delete using (public.is_admin());
+create policy "Anyone can read upcoming battles" on public.battles for select using (status in ('OPEN', 'TASTING'));
 create policy "Authenticated users can read competition locations" on public.competition_locations for select using (auth.uid() is not null);
 create policy "Admins can manage competition locations" on public.competition_locations for all using (public.is_admin()) with check (public.is_admin());
 create policy "Users can join battles" on public.battle_participants for insert with check (auth.uid() = user_id);

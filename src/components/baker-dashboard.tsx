@@ -46,7 +46,7 @@ export function BakerDashboard() {
             <p className="mt-1 font-black">{new Date(battle.taste_day_at).toLocaleDateString()}</p>
           </div>
         </div>
-        <Link href={`/baker/battles/${battle.id}/submit`} className="mt-8 inline-flex items-center rounded-full bg-[#b8e4f2] px-6 py-4 font-black text-black transition hover:-translate-y-0.5 hover:bg-white">
+        <Link href={`/baker/battles/${battle.id}/submit`} className="mt-8 inline-flex items-center rounded-full bg-[#b8e4f2] px-6 py-4 font-black text-[#000000] transition hover:-translate-y-0.5 hover:bg-white">
           {submittedBattleIds.includes(battle.id) ? "View submission" : "Enter the competition"} <span className="ml-3">→</span>
         </Link>
       </section>)}

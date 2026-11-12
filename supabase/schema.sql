@@ -78,6 +78,7 @@ create policy "Users can read their profile" on public.profiles for select using
 create policy "Users can update their own mode" on public.profiles for update using (auth.uid() = id) with check (auth.uid() = id);
 create policy "Admins can read all profiles" on public.profiles for select using (public.is_admin());
 create policy "Authenticated users can read battles" on public.battles for select using (auth.uid() is not null);
+create policy "Anyone can read upcoming battles" on public.battles for select using (status in ('OPEN', 'TASTING'));
 create policy "Admins can create battles" on public.battles for insert with check (public.is_admin());
 create policy "Admins can update battles" on public.battles for update using (public.is_admin());
 create policy "Admins can delete battles" on public.battles for delete using (public.is_admin());

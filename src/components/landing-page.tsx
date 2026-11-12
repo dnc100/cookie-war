@@ -62,13 +62,17 @@ export function LandingPage() {
 
   useEffect(() => {
     const loadBattle = async () => {
-      const { data } = await getSupabaseBrowserClient()
+      const { data, error } = await getSupabaseBrowserClient()
         .from("battles")
         .select("name, genre, submissions_close_at, taste_day_at, results_day_at")
         .in("status", ["OPEN", "TASTING"])
         .order("taste_day_at", { ascending: true })
         .limit(1)
         .maybeSingle();
+      if (error) {
+        console.error("Could not load the next competition.", error);
+        return;
+      }
       if (data) {
         setNextBattle({ name: data.name, genre: data.genre, submissionDate: new Date(data.submissions_close_at).toLocaleDateString(), resultsDate: new Date(data.results_day_at).toLocaleDateString() });
         setNextBattleAt(new Date(data.taste_day_at));
