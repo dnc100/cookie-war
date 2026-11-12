@@ -1,36 +1,52 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Cookie War
 
-## Getting Started
+Cookie War is a Next.js app for local blind-tasting battles. Authentication and
+the first persistent admin flow use Supabase.
 
-First, run the development server:
+## Run locally
 
 ```bash
+npm install
+cp .env.example .env.local
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+In `.env.local`, set the Supabase project URL and publishable key from your
+Supabase project settings.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Create the database
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+1. Create a Supabase project.
+2. Open **SQL Editor** in Supabase.
+3. Paste and run [`supabase/schema.sql`](./supabase/schema.sql).
+4. Open **Authentication → Providers → Email** and enable email/password.
+5. If you already ran the original schema, run [`supabase/migrations/20261111_competition-logistics.sql`](./supabase/migrations/20261111_competition-logistics.sql) too.
+6. Start the app and create an account at `/auth`.
+7. Copy that user’s ID from **Authentication → Users**.
+8. Promote that account to admin in SQL Editor:
 
-## Learn More
+```sql
+update public.profiles
+set role = 'ADMIN'
+where id = 'YOUR_AUTH_USER_UUID';
+```
 
-To learn more about Next.js, take a look at the following resources:
+Then sign out and back in. The admin account can access `/admin/dashboard` and
+create competitions with a name, genre, taste date, judging criteria, and
+available drop-off locations.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+Bakers see active competitions in `/baker/dashboard`. Each baker can enter at
+most one submission per competition, choose a custom pickup location, optionally
+pin their current location, and later view/edit or remove that submission. The
+admin's **Baker logistics** tab shows every baker, email, chosen location,
+address, coordinates, and signup date. There is deliberately no
+baker-to-taster matching step.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Current scope
 
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- Real Supabase email/password signup and login.
+- Persistent user profiles with `BAKER`, `TASTER`, and `ADMIN` roles.
+- Admin-only competition creation with row-level security.
+- Persistent baker participation, chosen drop-off locations, and submissions.
+- Taster scoring still uses the existing demo tasting-room data; the next step is
+  to make its scorecard read the competition's saved judging criteria.
